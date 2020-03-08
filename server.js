@@ -2,90 +2,72 @@ const express = require('express');
 const graphqlHTTP = require('express-graphql');
 const { buildSchema } = require('graphql');
 
-//Dummy Data
-const users = [  // Dummy data
-    {
-      id: 1,
-      name: 'Brian',
-      age: '21',
-      gender: 'M'
-    },
-    {
-      id:2,
-      name: 'Kim',
-      age: '22',
-      gender: 'M'
-    },
-    {
-      id:3,
-      name: 'Joseph',
-      age: '23',
-      gender: 'M'
-    },
-    {
-      id:3,
-      name: 'Faith',
-      age: '23',
-      gender: 'F'
-    },
-    {
-      id:5,
-      name: 'Joy',
-      age: '25',
-      gender: 'F'
-    }
-];
-
-var getUser = function(args) { // return a single user based on id
-    var userID = args.id;
-    return users.filter(user => {
-      return user.id == userID;
-    })[0];
-  }
-  
-  var retrieveUsers = function(args) { // Return a list of users. Takes an optional gender parameter
-    if(args.gender) {
-      var gender = args.gender;
-      return users.filter(user => user.gender === gender);
-    } else {
-      return users;
-    }
-  }
-
-  var updateUser = function({id, name, age}) {  // Update a user and return new user details
-    users.map(user => {
-      if(user.id === id) {
-        user.name = name;
-        user.age = age;
-        return user;
-      }
-    });
-    return users.filter(user=> user.id === id) [0];
-  }
-
-
+const { createGame, getGame, getMonster, getPlayer, getCards, nextTurn } = require('./functions')
 
 // Initialize a GraphQL schema
 const schema = buildSchema(`
   type Query {
-    user(id: Int!): Person
-    users(gender: String): [Person]
+    getGame(gameId: String!): Game
+    getPlayer(gameId: String!): Player
+    getMonster(gameId: String!): Monster
+    getCards(playerId: String!): [Card]
   },
-  type Person {
-    id: Int
-    name: String
-    age: Int
-    gender: String  
-  }
   type Mutation {
-    updateUser(id: Int!, name: String!, age: String): Person
+    createGame(name: String!): String
+    nextTurn(gameId: String!, cardId: String): NextTurn
   }
+
+  type Game {
+    id: ID
+    currentTurn: Int!
+    maxTurns: Int!
+    turnsLeft: Int!
+    player: Player!
+    monster: Monster!
+}
+
+type Player {
+    id: ID!
+    name: String!
+    hp: Int!
+    maxHp: Int!
+    shield: Int!
+    cards: [Card!]!
+}
+
+type Monster {
+    id: ID!
+    name: String!
+    hp: Int!
+    maxHp: Int!
+    shield: Int!
+}
+
+type MonsterEffect {
+    effect: String!
+    value: Int!
+}
+
+type Card {
+    id: ID!
+    value: Int!
+    effect: String!
+}
+
+type NextTurn {
+    game: Game!
+    monsterEffect: MonsterEffect!
+}
+
 `);
 
 const root = { 
-    user: getUser,   // Resolver function to return user with specific id
-    users: retrieveUsers,
-    updateUser: updateUser  // Include mutation function in root resolver
+    createGame: createGame,   
+    getGame: getGame,
+    getPlayer: getPlayer,
+    getMonster: getMonster,
+    getCards: getCards,
+    nextTurn: nextTurn,
 };
 
 // Create an express server and a GraphQL endpoint
